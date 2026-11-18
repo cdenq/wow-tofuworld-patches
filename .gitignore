@@ -221,3 +221,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Tofu: patch files are release assets, never committed
+*.mpq
+*.MPQ
