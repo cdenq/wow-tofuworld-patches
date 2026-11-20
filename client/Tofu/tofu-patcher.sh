@@ -81,7 +81,7 @@ say 'Tofu WoW: checking for updates...'
 MF="$TMP/manifest.txt"
 if ! curl -L --fail --silent --show-error --retry 3 -o "$MF" "$MANIFEST_URL" || ! grep -q '^version' "$MF"; then
   say '  Could not reach the update server.'
-  if [ "$LAUNCH" = 1 ]; then say '  Starting without updating.'; WARNINGS=0; start_wow; exit 0; fi
+  if [ "$LAUNCH" = 1 ]; then rm -rf "$WOW/Cache"; say '  Starting without updating.'; WARNINGS=0; start_wow; exit 0; fi
   exit 1
 fi
 tr -d '\r' < "$MF" | grep -v '^#' > "$MF.clean"
@@ -195,7 +195,8 @@ fi
 
 # ---- 7. clean up ----
 [ -d "$WOW/Tofu Patches" ] && rm -rf "$WOW/Tofu Patches" && say '  removed the old Tofu Patches folder'
-if [ "$CHANGED" = 1 ] && [ -d "$WOW/Cache" ]; then rm -rf "$WOW/Cache"; say '  cleared the Cache folder'; fi
+# Cache holds the item, creature, and quest data the server sends; it is cleared at every launch so server-side changes (custom SQL with no new patch) always show (Chris, 2026-11-19).
+if [ -d "$WOW/Cache" ]; then rm -rf "$WOW/Cache"; say '  cleared the Cache folder'; fi
 printf 'Tofu Worldview patches, version %s\r\n' "$VERSION" > "$DATA/Tofu Patch Version.txt"
 printf '%s\n' "$VERSION" > "$TOFU/version.txt"
 

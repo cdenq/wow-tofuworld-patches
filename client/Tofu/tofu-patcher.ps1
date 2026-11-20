@@ -144,7 +144,7 @@ try {
   $M = Read-Manifest $manifestPath
 } catch {
   Write-Host "  Could not reach the update server ($($_.Exception.Message))." -ForegroundColor Yellow
-  if ($Launch) { Say '  Starting WoW without updating.'; $script:Warnings = 0; Start-Wow; exit 0 }
+  if ($Launch) { $cache = Join-Path $WowDir 'Cache'; if (Test-Path -LiteralPath $cache) { Remove-Item -LiteralPath $cache -Recurse -Force -ErrorAction SilentlyContinue }; Say '  Starting WoW without updating.'; $script:Warnings = 0; Start-Wow; exit 0 }
   exit 1
 }
 
@@ -257,10 +257,9 @@ try {
   # ---- 7. clean up ----
   $legacy = Join-Path $WowDir 'Tofu Patches'
   if (Test-Path -LiteralPath $legacy) { Remove-Item -LiteralPath $legacy -Recurse -Force; Say '  removed the old Tofu Patches folder' }
-  if ($script:Changed) {
-    $cache = Join-Path $WowDir 'Cache'
-    if (Test-Path -LiteralPath $cache) { Remove-Item -LiteralPath $cache -Recurse -Force; Say '  cleared the Cache folder' }
-  }
+  # Cache holds the item, creature, and quest data the server sends; it is cleared at every launch so server-side changes (custom SQL with no new patch) always show (Chris, 2026-11-19).
+  $cache = Join-Path $WowDir 'Cache'
+  if (Test-Path -LiteralPath $cache) { Remove-Item -LiteralPath $cache -Recurse -Force; Say '  cleared the Cache folder' }
   Set-Content -LiteralPath (Join-Path $Data 'Tofu Patch Version.txt') -Value "Tofu Worldview patches, version $($M.Version)" -Encoding ASCII
   Set-Content -LiteralPath (Join-Path $Tofu 'version.txt') -Value $M.Version -Encoding ASCII
 } catch {
