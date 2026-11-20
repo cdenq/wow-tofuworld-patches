@@ -1,11 +1,11 @@
 # Tofu WoW manifest, written by publish.sh. Tab-separated. Lines: version, realmlist, keep, standard, then script/data/addons: kind name sha1 size url [addon folders separated by |].
-version	2026.11.19.1
+version	2026.11.19.2
 realmlist	tofutemple.zapto.org
 keep	patch-h.mpq	patch-s.mpq
 standard	Patch-H.MPQ
 script	tofu-patcher.ps1	c14b2fe1f5fabbe2e10df8363d55e67487c40366	12386	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.18.1/tofu-patcher.ps1
 script	tofu-patcher.sh	d1e6d8fba677bde1932b8fbfedecbd10ae7f7adf	8671	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.18.1/tofu-patcher.sh
-data	patch-m.mpq	29b5cf98b0ff7b3fe9ea26bc2e16c4447b8c39a7	2816744147	bundled
+data	patch-m.mpq	021d8154b1a024d8218f379f8221642689cd2a97	2816745335	bundled
 data	patch-p.mpq	3857565b92ce94655a434e44790971db5f45d7d7	25908765	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.18.4/patch-p.mpq
-data	patch-z.mpq	377615caeec1cccbe5760fb02adfe84b15c9dfb2	71032369	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.19.1/patch-z.mpq
+data	patch-z.mpq	2cc2cd8abbcc4a51ed643fd88ed2b2bc1cf69bcd	76858856	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.19.2/patch-z.mpq
 addons	TofuWorldview-AddOns.zip	07c4ec2c3642e312627d140b1c3f43627c718467	10843	https://github.com/cdenq/wow-tofuworld-patches/releases/download/v2026.11.19.1/TofuWorldview-AddOns.zip	TofuSetup
