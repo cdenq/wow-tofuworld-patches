@@ -193,6 +193,24 @@ if [ -n "$REALMLIST" ]; then
   [ "$found" = 1 ] || warn 'Could not find realmlist.wtf in any Data language folder.'
 fi
 
+# ---- 6b. Wow.exe name check ----
+# The stock 3.3.5a client (build 12340) checks character names itself (ValidateName, file offset 0x2B0390 = 2818960) and refuses digits, three letters in a row, and reserved names before the server sees them. Tofu Worldview lets the server decide, so that function is made to return CHAR_NAME_SUCCESS (0x57) at once: 55 8B EC 8B 45 08 becomes B8 57 00 00 00 C3 (mov eax, 0x57; ret), the same change mod-two-names documents. Only a Wow.exe with exactly the stock or the patched bytes there is touched, and the first change saves the original as Tofu/Wow.exe.original.
+EXE="$WOW/Wow.exe"
+NAME_OFF=2818960
+name_bytes() { od -An -tx1 -j "$NAME_OFF" -N 6 "$EXE" 2>/dev/null | tr -d ' \n'; }
+case "$(name_bytes)" in
+  b857000000c3) ;;
+  558bec8b4508)
+    if { [ -f "$TOFU/Wow.exe.original" ] || cp -p "$EXE" "$TOFU/Wow.exe.original"; } && printf '\270\127\000\000\000\303' | dd of="$EXE" bs=1 seek="$NAME_OFF" conv=notrunc 2>/dev/null && [ "$(name_bytes)" = b857000000c3 ]; then
+      say '  allowed numbers, repeated letters, and more in character names (Wow.exe updated; the original is in Tofu/Wow.exe.original)'
+      CHANGED=1
+    else
+      warn 'Could not update Wow.exe to allow numbers in character names. Everything else works.'
+    fi
+    ;;
+  *) say '  note: this Wow.exe is not the standard 3.3.5a build, so its name check was left alone (character names may be limited to letters).' ;;
+esac
+
 # ---- 7. clean up ----
 [ -d "$WOW/Tofu Patches" ] && rm -rf "$WOW/Tofu Patches" && say '  removed the old Tofu Patches folder'
 # Cache holds the item, creature, and quest data the server sends; it is cleared at every launch so server-side changes (custom SQL with no new patch) always show (Chris, 2026-11-19).

@@ -254,6 +254,33 @@ try {
     }
   }
 
+  # ---- 6b. Wow.exe name check ----
+  # The stock 3.3.5a client (build 12340) checks character names itself (ValidateName, file offset 0x2B0390) and refuses digits, three letters in a row, and reserved names before the server sees them. Tofu Worldview lets the server decide, so that function is made to return CHAR_NAME_SUCCESS (0x57) at once: 55 8B EC 8B 45 08 becomes B8 57 00 00 00 C3 (mov eax, 0x57; ret), the same change mod-two-names documents. Only a Wow.exe with exactly the stock or the patched bytes there is touched, and the first change saves the original as Tofu\Wow.exe.original.
+  $exe = Join-Path $WowDir 'Wow.exe'
+  $nameOff = 0x2B0390
+  $nameStock = [byte[]](0x55, 0x8B, 0xEC, 0x8B, 0x45, 0x08)
+  $namePatched = [byte[]](0xB8, 0x57, 0x00, 0x00, 0x00, 0xC3)
+  try {
+    $bytes = [IO.File]::ReadAllBytes($exe)
+    $now = [byte[]]::new(6)
+    if ($bytes.Length -ge $nameOff + 6) { [Array]::Copy($bytes, $nameOff, $now, 0, 6) }
+    $ver = (Get-Item -LiteralPath $exe).VersionInfo
+    if ([Linq.Enumerable]::SequenceEqual($now, $namePatched)) {
+      # already patched
+    } elseif (-not [Linq.Enumerable]::SequenceEqual($now, $nameStock) -or ($ver.FileMajorPart -eq 3 -and $ver.FilePrivatePart -ne 12340)) {
+      Say '  note: this Wow.exe is not the standard 3.3.5a build, so its name check was left alone (character names may be limited to letters).'
+    } else {
+      $orig = Join-Path $Tofu 'Wow.exe.original'
+      if (-not (Test-Path -LiteralPath $orig)) { Copy-Item -LiteralPath $exe -Destination $orig }
+      $fs = [IO.File]::Open($exe, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::None)
+      try { $fs.Position = $nameOff; $fs.Write($namePatched, 0, 6) } finally { $fs.Close() }
+      Say '  allowed numbers, repeated letters, and more in character names (Wow.exe updated; the original is in Tofu\Wow.exe.original)'
+      $script:Changed = $true
+    }
+  } catch {
+    Warn "Could not update Wow.exe to allow numbers in character names ($($_.Exception.Message)). Everything else works."
+  }
+
   # ---- 7. clean up ----
   $legacy = Join-Path $WowDir 'Tofu Patches'
   if (Test-Path -LiteralPath $legacy) { Remove-Item -LiteralPath $legacy -Recurse -Force; Say '  removed the old Tofu Patches folder' }
