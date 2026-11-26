@@ -281,6 +281,32 @@ try {
     Warn "Could not update Wow.exe to allow numbers in character names ($($_.Exception.Message)). Everything else works."
   }
 
+  # ---- 6c. Wow.exe raid level check ----
+  # The stock 3.3.5a client (build 12340) refuses to send the convert-to-raid request when the player is below level 10: Script_ConvertToRaid at 0x574A00 does cmp dword ptr [ecx+0xC0], 0xA then jl (file offset 0x173E59, 83 B9 C0 00 00 00 0A 7C 3E). Tofu Worldview sets the raid level limit in worldserver.conf (Group.Raid.LevelRestriction), so the limit in the client is lowered to 1: the 0A becomes 01 and the check can never fail. Only a Wow.exe with exactly the stock or the patched bytes there is touched, and the first change saves the original as Tofu\Wow.exe.original. The matching button check in the UI is handled by the TofuRaidFix addon.
+  $raidOff = 0x173E59
+  $raidStock = [byte[]](0x83, 0xB9, 0xC0, 0x00, 0x00, 0x00, 0x0A, 0x7C, 0x3E)
+  $raidPatched = [byte[]](0x83, 0xB9, 0xC0, 0x00, 0x00, 0x00, 0x01, 0x7C, 0x3E)
+  try {
+    $bytes = [IO.File]::ReadAllBytes($exe)
+    $now = [byte[]]::new(9)
+    if ($bytes.Length -ge $raidOff + 9) { [Array]::Copy($bytes, $raidOff, $now, 0, 9) }
+    $ver = (Get-Item -LiteralPath $exe).VersionInfo
+    if ([Linq.Enumerable]::SequenceEqual($now, $raidPatched)) {
+      # already patched
+    } elseif (-not [Linq.Enumerable]::SequenceEqual($now, $raidStock) -or ($ver.FileMajorPart -eq 3 -and $ver.FilePrivatePart -ne 12340)) {
+      Say '  note: this Wow.exe is not the standard 3.3.5a build, so its raid level check was left alone (raid groups may need level 10).'
+    } else {
+      $orig = Join-Path $Tofu 'Wow.exe.original'
+      if (-not (Test-Path -LiteralPath $orig)) { Copy-Item -LiteralPath $exe -Destination $orig }
+      $fs = [IO.File]::Open($exe, [IO.FileMode]::Open, [IO.FileAccess]::Write, [IO.FileShare]::None)
+      try { $fs.Position = $raidOff; $fs.Write($raidPatched, 0, 9) } finally { $fs.Close() }
+      Say '  allowed players below level 10 to convert a group to a raid (Wow.exe updated; the original is in Tofu\Wow.exe.original)'
+      $script:Changed = $true
+    }
+  } catch {
+    Warn "Could not update Wow.exe to allow low-level raid groups ($($_.Exception.Message)). Everything else works."
+  }
+
   # ---- 7. clean up ----
   $legacy = Join-Path $WowDir 'Tofu Patches'
   if (Test-Path -LiteralPath $legacy) { Remove-Item -LiteralPath $legacy -Recurse -Force; Say '  removed the old Tofu Patches folder' }

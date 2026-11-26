@@ -211,6 +211,23 @@ case "$(name_bytes)" in
   *) say '  note: this Wow.exe is not the standard 3.3.5a build, so its name check was left alone (character names may be limited to letters).' ;;
 esac
 
+# ---- 6c. Wow.exe raid level check ----
+# The stock 3.3.5a client (build 12340) refuses to send the convert-to-raid request when the player is below level 10: Script_ConvertToRaid at 0x574A00 does `cmp dword ptr [ecx+0xC0], 0xA` then `jl` (file offset 0x173E59 = 1523289, 83 B9 C0 00 00 00 0A 7C 3E). Tofu Worldview sets the raid level limit in worldserver.conf (Group.Raid.LevelRestriction), so the limit in the client is lowered to 1: the 0A becomes 01 and the check can never fail. Only a Wow.exe with exactly the stock or the patched bytes there is touched, and the first change saves the original as Tofu/Wow.exe.original. The matching button check in the UI is handled by the TofuRaidFix addon.
+RAID_OFF=1523289
+raid_bytes() { od -An -tx1 -j "$RAID_OFF" -N 9 "$EXE" 2>/dev/null | tr -d ' \n'; }
+case "$(raid_bytes)" in
+  83b9c0000000017c3e) ;;
+  83b9c00000000a7c3e)
+    if { [ -f "$TOFU/Wow.exe.original" ] || cp -p "$EXE" "$TOFU/Wow.exe.original"; } && printf '\001' | dd of="$EXE" bs=1 seek=$((RAID_OFF + 6)) conv=notrunc 2>/dev/null && [ "$(raid_bytes)" = 83b9c0000000017c3e ]; then
+      say '  allowed players below level 10 to convert a group to a raid (Wow.exe updated; the original is in Tofu/Wow.exe.original)'
+      CHANGED=1
+    else
+      warn 'Could not update Wow.exe to allow low-level raid groups. Everything else works.'
+    fi
+    ;;
+  *) say '  note: this Wow.exe is not the standard 3.3.5a build, so its raid level check was left alone (raid groups may need level 10).' ;;
+esac
+
 # ---- 7. clean up ----
 [ -d "$WOW/Tofu Patches" ] && rm -rf "$WOW/Tofu Patches" && say '  removed the old Tofu Patches folder'
 # Cache holds the item, creature, and quest data the server sends; it is cleared at every launch so server-side changes (custom SQL with no new patch) always show (Chris, 2026-11-19).
